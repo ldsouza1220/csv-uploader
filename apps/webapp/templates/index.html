@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Processor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #555;
+            margin: 30px 0 15px;
+            font-size: 1.3em;
+        }
+        .upload-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .upload-form {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+            cursor: pointer;
+            flex: 1;
+            min-width: 200px;
+        }
+        input[type="file"]:hover {
+            border-color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        .progress-container.visible {
+            display: block;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #00d4ff);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .result-message {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .result-message.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result-message.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result-message h3 {
+            margin-bottom: 8px;
+        }
+        .history-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-info {
+            flex: 1;
+        }
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+        .file-meta {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+        }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-badge.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV Processor</h1>
+
+        <div class="upload-section">
+            <form class="upload-form" id="uploadForm">
+                <input type="file" id="csvFile" accept=".csv" required>
+                <button type="submit" id="uploadBtn">Upload</button>
+            </form>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Uploading...</div>
+            </div>
+
+            <div class="result-message" id="resultMessage">
+                <h3 id="resultTitle"></h3>
+                <p id="resultDetails"></p>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <h2>Processing History</h2>
+            <div id="historyList">
+                {% if files %}
+                    {% for file in files %}
+                    <div class="file-item">
+                        <div class="file-info">
+                            <div class="file-name">{{ file.filename }}</div>
+                            <div class="file-meta">
+                                {{ file.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }} |
+                                {{ file.row_count }} rows
+                            </div>
+                        </div>
+                        <span class="status-badge {{ file.status }}">{{ file.status }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">No files processed yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const csvFile = document.getElementById('csvFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const resultMessage = document.getElementById('resultMessage');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultDetails = document.getElementById('resultDetails');
+
+        function resetUI() {
+            progressContainer.classList.remove('visible');
+            progressFill.style.width = '0%';
+            resultMessage.className = 'result-message';
+        }
+
+        function showProgress() {
+            resetUI();
+            progressContainer.classList.add('visible');
+            // Animate progress bar to 90% (will complete on success)
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) {
+                    progress = 90;
+                    clearInterval(interval);
+                }
+                progressFill.style.width = progress + '%';
+            }, 200);
+            return interval;
+        }
+
+        function showResult(success, title, details) {
+            progressFill.style.width = '100%';
+            progressFill.style.animation = 'none';
+
+            setTimeout(() => {
+                progressContainer.classList.remove('visible');
+                resultMessage.className = `result-message ${success ? 'success' : 'error'}`;
+                resultTitle.textContent = title;
+                resultDetails.textContent = details;
+            }, 300);
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const file = csvFile.files[0];
+            if (!file) return;
+
+            uploadBtn.disabled = true;
+            const progressInterval = showProgress();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showResult(true, 'Upload Successful',
+                        `${data.filename} uploaded with ${data.row_count} rows`);
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showResult(false, 'Upload Failed', data.message);
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                showResult(false, 'Upload Failed', error.message);
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
