@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "csv-uploader.fullname" . }}
+  name: {{ include "panda-secret.fullname" . }}
   labels:
-    {{- include "csv-uploader.labels" . | nindent 4 }}
+    {{- include "panda-secret.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "csv-uploader.fullname" . }}
+    name: {{ include "panda-secret.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

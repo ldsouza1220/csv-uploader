@@ -19,13 +19,13 @@ service:
   type: ClusterIP
   port: 80
 
-# Horizontal Pod Autoscaler
+# Horizontal Pod Autoscaler (low thresholds for demo)
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 80
+  targetCPUUtilizationPercentage: 20
+  targetMemoryUtilizationPercentage: 30
 
 resources:
   limits:
