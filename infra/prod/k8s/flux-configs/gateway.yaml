@@ -18,16 +18,18 @@ spec:
     - name: http
       port: 80
       protocol: HTTP
+      hostname: "*.souzaxx.dev"
       allowedRoutes:
         namespaces:
           from: All
     - name: https
       port: 443
       protocol: HTTPS
+      hostname: "*.souzaxx.dev"
       tls:
         mode: Terminate
         certificateRefs:
-          - name: gateway-tls
+          - name: wildcard-tls
             kind: Secret
       allowedRoutes:
         namespaces:

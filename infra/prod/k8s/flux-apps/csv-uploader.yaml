@@ -50,3 +50,9 @@ spec:
       targetMemoryUtilizationPercentage: 80
     ingress:
       enabled: false
+    httpRoute:
+      enabled: true
+      hostname: csv.souzaxx.dev
+      gateway:
+        name: main
+        namespace: nginx-gateway

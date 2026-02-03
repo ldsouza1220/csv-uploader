@@ -82,3 +82,11 @@ persistence:
   accessMode: ReadWriteOnce
   size: 1Gi
   storageClass: "gp2"
+
+httpRoute:
+  enabled: false
+  hostname: ""
+  gateway:
+    name: main
+    namespace: nginx-gateway
+    sectionName: ""

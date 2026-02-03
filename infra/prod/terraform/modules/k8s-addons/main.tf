@@ -307,7 +307,7 @@ resource "kubectl_manifest" "flux_kustomization_apps" {
       namespace = "flux-system"
     }
     spec = {
-      interval = "10m"
+      interval = "1m"
       dependsOn = [
         {
           name = "k8s-addons-configs"

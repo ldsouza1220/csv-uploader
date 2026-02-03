@@ -1,0 +1,27 @@
+{{- if .Values.httpRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "panda-secret.fullname" . }}
+  labels:
+    {{- include "panda-secret.labels" . | nindent 4 }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.httpRoute.hostname }}
+spec:
+  parentRefs:
+    - name: {{ .Values.httpRoute.gateway.name }}
+      namespace: {{ .Values.httpRoute.gateway.namespace }}
+      {{- if .Values.httpRoute.gateway.sectionName }}
+      sectionName: {{ .Values.httpRoute.gateway.sectionName }}
+      {{- end }}
+  hostnames:
+    - {{ .Values.httpRoute.hostname }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ include "panda-secret.fullname" . }}
+          port: {{ .Values.service.port }}
+{{- end }}

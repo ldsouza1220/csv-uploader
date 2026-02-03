@@ -40,3 +40,11 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+httpRoute:
+  enabled: false
+  hostname: ""
+  gateway:
+    name: main
+    namespace: nginx-gateway
+    sectionName: ""
