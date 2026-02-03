@@ -5,13 +5,21 @@ from config import settings
 
 
 def get_s3_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=settings.S3_ENDPOINT_URL,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_REGION,
-    )
+    if settings.is_local:
+        # Local development with MinIO
+        return boto3.client(
+            "s3",
+            endpoint_url=settings.S3_ENDPOINT_URL,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION,
+        )
+    else:
+        # Production: use real S3 with Pod Identity credentials
+        return boto3.client(
+            "s3",
+            region_name=settings.AWS_REGION,
+        )
 
 
 def ensure_bucket_exists():
