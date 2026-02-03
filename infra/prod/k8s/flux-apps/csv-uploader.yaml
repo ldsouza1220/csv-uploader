@@ -37,6 +37,8 @@ spec:
     env:
       - name: ENVIRONMENT
         value: production
+      - name: DATABASE_URL
+        value: "sqlite:////data/csv_processor.db"
       - name: S3_BUCKET_NAME
         value: csv-uploader-ounass
       - name: AWS_REGION
