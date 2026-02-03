@@ -16,6 +16,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: csv-uploader
+  name: apps
   labels:
-    app.kubernetes.io/name: csv-uploader
+    app.kubernetes.io/name: apps

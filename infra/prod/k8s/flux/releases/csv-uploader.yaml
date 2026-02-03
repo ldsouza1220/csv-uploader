@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  targetNamespace: csv-uploader
+  targetNamespace: apps
   releaseName: csv-uploader
   chart:
     spec:
