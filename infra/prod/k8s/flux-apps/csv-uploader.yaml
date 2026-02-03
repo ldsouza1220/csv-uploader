@@ -44,8 +44,7 @@ spec:
 
     serviceAccount:
       create: true
-      annotations:
-        eks.amazonaws.com/role-arn: ""  # Add IAM role ARN for S3 access
+      name: csv-uploader
 
     autoscaling:
       enabled: true
@@ -55,4 +54,4 @@ spec:
       targetMemoryUtilizationPercentage: 80
 
     ingress:
-      enabled: false  # Using Gateway API instead
+      enabled: false

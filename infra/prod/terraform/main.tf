@@ -41,6 +41,9 @@ module "eks" {
     vpc-cni = {
       before_compute = true
     }
+    aws-ebs-csi-driver = {
+      service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
+    }
   }
 
   eks_managed_node_groups = {
@@ -94,6 +97,83 @@ module "vpc" {
   }
 
   tags = local.tags
+}
+
+#######################################
+# EBS CSI Driver IAM Role
+#######################################
+
+module "ebs_csi_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "~> 5.0"
+
+  create_role = true
+  role_name   = "${local.name}-ebs-csi"
+
+  provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
+  role_policy_arns              = ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+
+  tags = local.tags
+}
+
+#######################################
+# CSV Uploader IAM Role (EKS Pod Identity)
+#######################################
+
+resource "aws_iam_role" "csv_uploader" {
+  name = "${local.name}-csv-uploader"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy" "csv_uploader_s3" {
+  name = "s3-upload"
+  role = aws_iam_role.csv_uploader.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::csv-uploader-ounass",
+          "arn:aws:s3:::csv-uploader-ounass/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_eks_pod_identity_association" "csv_uploader" {
+  cluster_name    = module.eks.cluster_name
+  namespace       = "apps"
+  service_account = "csv-uploader"
+  role_arn        = aws_iam_role.csv_uploader.arn
+
+  depends_on = [module.eks]
 }
 
 #######################################
