@@ -16,16 +16,13 @@ spec:
         namespace: flux-system
   values:
     replicaCount: 2
-
     image:
       repository: ghcr.io/ldsouza1220/csv-uploader/csv-uploader
-      tag: "latest"
+      tag: ""
       pullPolicy: IfNotPresent
-
     service:
       type: ClusterIP
       port: 8000
-
     resources:
       limits:
         cpu: 500m
@@ -33,7 +30,6 @@ spec:
       requests:
         cpu: 100m
         memory: 256Mi
-
     env:
       - name: ENVIRONMENT
         value: production
@@ -43,17 +39,14 @@ spec:
         value: csv-uploader-ounass
       - name: AWS_REGION
         value: ${AWS_REGION}
-
     serviceAccount:
       create: true
       name: csv-uploader
-
     autoscaling:
       enabled: true
       minReplicas: 2
       maxReplicas: 10
       targetCPUUtilizationPercentage: 70
       targetMemoryUtilizationPercentage: 80
-
     ingress:
       enabled: false
