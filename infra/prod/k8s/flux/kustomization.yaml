@@ -14,4 +14,4 @@ resources:
   - releases/karpenter.yaml
   - releases/nginx-gateway-fabric.yaml
 
-  - releases/csv-uploader.yaml
+  # - releases/csv-uploader.yaml
