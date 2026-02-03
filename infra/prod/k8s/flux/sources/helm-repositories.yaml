@@ -1,0 +1,51 @@
+---
+# Jetstack (cert-manager)
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: jetstack
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://charts.jetstack.io
+---
+# External DNS
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: external-dns
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://kubernetes-sigs.github.io/external-dns/
+---
+# AWS EKS Charts (LB Controller)
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: eks-charts
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://aws.github.io/eks-charts
+---
+# Karpenter (OCI Registry)
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: karpenter
+  namespace: flux-system
+spec:
+  interval: 1h
+  type: oci
+  url: oci://public.ecr.aws/karpenter
+---
+# NGINX Gateway Fabric
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: nginx-gateway
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://nginx.github.io/nginx-gateway-fabric

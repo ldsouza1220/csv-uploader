@@ -1,0 +1,32 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: apps
+spec:
+  template:
+    metadata:
+      labels:
+        apps: hextris
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: karpenter
+      requirements:
+        - key: "karpenter.k8s.aws/instance-category"
+          operator: In
+          values: ["c", "m", "r", "t"]
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+        - key: "karpenter.k8s.aws/instance-cpu"
+          operator: In
+          values: ["2", "4"]
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["spot"]
+  limits:
+    cpu: 4
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 30s
