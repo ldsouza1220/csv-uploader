@@ -15,6 +15,3 @@ resources:
   - releases/nginx-gateway-fabric.yaml
 
   - releases/csv-uploader.yaml
-
-  - configs/cert-manager-cluster-issuer.yaml
-  - configs/gateway.yaml
