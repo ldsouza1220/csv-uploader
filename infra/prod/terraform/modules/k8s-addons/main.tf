@@ -294,6 +294,41 @@ resource "kubectl_manifest" "flux_kustomization_karpenter_configs" {
   })
 }
 
+resource "kubectl_manifest" "flux_kustomization_apps" {
+  count = var.flux.enabled ? 1 : 0
+
+  depends_on = [kubectl_manifest.flux_kustomization_configs]
+
+  yaml_body = yamlencode({
+    apiVersion = "kustomize.toolkit.fluxcd.io/v1"
+    kind       = "Kustomization"
+    metadata = {
+      name      = "apps"
+      namespace = "flux-system"
+    }
+    spec = {
+      interval = "10m"
+      dependsOn = [
+        {
+          name = "k8s-addons-configs"
+        }
+      ]
+      sourceRef = {
+        kind = "GitRepository"
+        name = "csv-uploader"
+      }
+      path  = "infra/prod/k8s/flux-apps"
+      prune = true
+      wait  = true
+      postBuild = {
+        substitute = {
+          AWS_REGION = data.aws_region.current.name
+        }
+      }
+    }
+  })
+}
+
 #######################################
 # Outputs
 #######################################

@@ -13,6 +13,3 @@ resources:
   - releases/aws-load-balancer-controller.yaml
   - releases/karpenter.yaml
   - releases/nginx-gateway-fabric.yaml
-
-  - releases/csv-uploader.yaml
-  - releases/panda-secret.yaml
