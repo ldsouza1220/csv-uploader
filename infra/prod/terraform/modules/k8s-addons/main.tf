@@ -228,6 +228,36 @@ resource "kubectl_manifest" "flux_kustomization" {
   })
 }
 
+resource "kubectl_manifest" "flux_kustomization_configs" {
+  count = var.flux.enabled ? 1 : 0
+
+  depends_on = [kubectl_manifest.flux_kustomization]
+
+  yaml_body = yamlencode({
+    apiVersion = "kustomize.toolkit.fluxcd.io/v1"
+    kind       = "Kustomization"
+    metadata = {
+      name      = "k8s-addons-configs"
+      namespace = "flux-system"
+    }
+    spec = {
+      interval = "10m"
+      dependsOn = [
+        {
+          name = "k8s-addons"
+        }
+      ]
+      sourceRef = {
+        kind = "GitRepository"
+        name = "csv-uploader"
+      }
+      path  = "infra/prod/k8s/flux-configs"
+      prune = true
+      wait  = true
+    }
+  })
+}
+
 resource "kubectl_manifest" "flux_kustomization_karpenter_configs" {
   count = var.flux.enabled && var.karpenter.enabled ? 1 : 0
 
