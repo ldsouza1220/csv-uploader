@@ -228,6 +228,42 @@ resource "kubectl_manifest" "flux_kustomization" {
   })
 }
 
+resource "kubectl_manifest" "flux_kustomization_karpenter_configs" {
+  count = var.flux.enabled && var.karpenter.enabled ? 1 : 0
+
+  depends_on = [kubectl_manifest.flux_kustomization]
+
+  yaml_body = yamlencode({
+    apiVersion = "kustomize.toolkit.fluxcd.io/v1"
+    kind       = "Kustomization"
+    metadata = {
+      name      = "karpenter-configs"
+      namespace = "flux-system"
+    }
+    spec = {
+      interval = "10m"
+      dependsOn = [
+        {
+          name = "k8s-addons"
+        }
+      ]
+      sourceRef = {
+        kind = "GitRepository"
+        name = "csv-uploader"
+      }
+      path  = "infra/prod/k8s/flux-karpenter-configs"
+      prune = true
+      wait  = true
+      postBuild = {
+        substitute = {
+          CLUSTER_NAME             = var.eks.cluster_name
+          KARPENTER_NODE_ROLE_NAME = local.iam_role_names.karpenter_node
+        }
+      }
+    }
+  })
+}
+
 #######################################
 # Outputs
 #######################################
