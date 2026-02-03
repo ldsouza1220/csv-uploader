@@ -1,0 +1,12 @@
+apiVersion: v2
+name: panda-secret
+description: Nginx serving a panda-themed website with a Kubernetes secret
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - nginx
+  - panda
+  - demo
+maintainers:
+  - name: Lucas de Souza

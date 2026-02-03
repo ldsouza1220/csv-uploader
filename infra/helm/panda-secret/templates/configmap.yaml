@@ -1,0 +1,340 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "panda-secret.fullname" . }}-nginx
+  labels:
+    {{- include "panda-secret.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /tmp/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log /var/log/nginx/access.log main;
+
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        gzip on;
+        gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+
+        server {
+            listen 80;
+            server_name _;
+            root /usr/share/nginx/html;
+            index index.html;
+
+            # Serve static files directly
+            location /static/ {
+                alias /var/www/static/;
+                expires 30d;
+                add_header Cache-Control "public, immutable";
+            }
+
+            # Serve secret from mounted secret file
+            location /api/secret {
+                default_type application/json;
+                alias /var/www/secret/secret.json;
+            }
+
+            # Health check endpoint
+            location /healthz {
+                return 200 'ok';
+                add_header Content-Type text/plain;
+            }
+
+            location / {
+                try_files $uri $uri/ /index.html;
+            }
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "panda-secret.fullname" . }}-static
+  labels:
+    {{- include "panda-secret.labels" . | nindent 4 }}
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Panda Secret Keeper</title>
+        <link rel="stylesheet" href="/static/css/style.css">
+    </head>
+    <body>
+        <div class="container">
+            <div class="panda">
+                <div class="ear ear-left"></div>
+                <div class="ear ear-right"></div>
+                <div class="face">
+                    <div class="eye-patch eye-patch-left">
+                        <div class="eye eye-left">
+                            <div class="pupil"></div>
+                        </div>
+                    </div>
+                    <div class="eye-patch eye-patch-right">
+                        <div class="eye eye-right">
+                            <div class="pupil"></div>
+                        </div>
+                    </div>
+                    <div class="nose"></div>
+                    <div class="mouth"></div>
+                    <div class="blush blush-left"></div>
+                    <div class="blush blush-right"></div>
+                </div>
+            </div>
+            <h1>Panda Secret Keeper</h1>
+            <p class="warning">This secret will cost the life of a panda.</p>
+            <p class="question">Do you still want to see the secret?</p>
+            <button id="reveal-btn" class="reveal-button">Reveal the Secret</button>
+            <div id="secret-box" class="secret-box hidden">
+                <p class="secret-label">The secret is:</p>
+                <p id="secret-value" class="secret-value"></p>
+            </div>
+            <div id="rip-panda" class="rip-panda hidden">
+                <p>RIP Panda</p>
+            </div>
+        </div>
+        <script src="/static/js/app.js"></script>
+    </body>
+    </html>
+  style.css: |
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ffeaa7 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .container {
+        text-align: center;
+        padding: 2rem;
+    }
+    .panda {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        margin: 0 auto 2rem;
+    }
+    .face {
+        position: absolute;
+        width: 180px;
+        height: 160px;
+        background: #fff;
+        border-radius: 50%;
+        top: 40px;
+        left: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .ear {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        background: #1a1a1a;
+        border-radius: 50%;
+        top: 10px;
+    }
+    .ear-left { left: 15px; }
+    .ear-right { right: 15px; }
+    .eye-patch {
+        position: absolute;
+        width: 55px;
+        height: 45px;
+        background: #1a1a1a;
+        border-radius: 50%;
+        top: 35px;
+        transform: rotate(-5deg);
+    }
+    .eye-patch-left { left: 20px; transform: rotate(-10deg); }
+    .eye-patch-right { right: 20px; transform: rotate(10deg); }
+    .eye {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        background: #fff;
+        border-radius: 50%;
+        top: 12px;
+        left: 18px;
+    }
+    .pupil {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: #1a1a1a;
+        border-radius: 50%;
+        top: 6px;
+        left: 8px;
+    }
+    .nose {
+        position: absolute;
+        width: 20px;
+        height: 14px;
+        background: #1a1a1a;
+        border-radius: 50%;
+        top: 85px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .mouth {
+        position: absolute;
+        width: 30px;
+        height: 15px;
+        border: 3px solid #1a1a1a;
+        border-top: none;
+        border-radius: 0 0 30px 30px;
+        top: 98px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .blush {
+        position: absolute;
+        width: 25px;
+        height: 12px;
+        background: #ffb6c1;
+        border-radius: 50%;
+        top: 95px;
+        opacity: 0.7;
+    }
+    .blush-left { left: 15px; }
+    .blush-right { right: 15px; }
+    h1 {
+        font-size: 2.5rem;
+        color: #2d3436;
+        margin-bottom: 1rem;
+    }
+    .warning {
+        font-size: 1.2rem;
+        color: #d63031;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .question {
+        font-size: 1.1rem;
+        color: #636e72;
+        margin-bottom: 1.5rem;
+    }
+    .reveal-button {
+        background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(232, 67, 147, 0.4);
+    }
+    .reveal-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(232, 67, 147, 0.5);
+    }
+    .reveal-button:active {
+        transform: translateY(0);
+    }
+    .reveal-button.clicked {
+        background: linear-gradient(135deg, #b2bec3 0%, #636e72 100%);
+        cursor: not-allowed;
+    }
+    .secret-box {
+        margin-top: 2rem;
+        padding: 1.5rem 2rem;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.5s ease;
+    }
+    .secret-label {
+        font-size: 0.9rem;
+        color: #636e72;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.5rem;
+    }
+    .secret-value {
+        font-size: 1.5rem;
+        color: #6c5ce7;
+        font-weight: 700;
+        word-break: break-all;
+    }
+    .rip-panda {
+        margin-top: 1rem;
+        font-size: 1rem;
+        color: #b2bec3;
+        animation: fadeIn 1s ease;
+    }
+    .rip-panda p {
+        font-style: italic;
+    }
+    .hidden {
+        display: none;
+    }
+    .panda.sad .mouth {
+        border: 3px solid #1a1a1a;
+        border-bottom: none;
+        border-radius: 30px 30px 0 0;
+        top: 102px;
+    }
+    .panda.sad .eye {
+        animation: cry 2s infinite;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cry {
+        0%, 100% { box-shadow: none; }
+        50% { box-shadow: 0 10px 5px -5px rgba(100, 181, 246, 0.5); }
+    }
+  app.js: |
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('reveal-btn');
+        const secretBox = document.getElementById('secret-box');
+        const secretValue = document.getElementById('secret-value');
+        const ripPanda = document.getElementById('rip-panda');
+        const panda = document.querySelector('.panda');
+
+        btn.addEventListener('click', function() {
+            if (btn.classList.contains('clicked')) return;
+
+            btn.classList.add('clicked');
+            btn.textContent = 'Loading...';
+
+            fetch('/api/secret')
+                .then(response => response.json())
+                .then(data => {
+                    secretValue.textContent = data.secret;
+                    secretBox.classList.remove('hidden');
+                    ripPanda.classList.remove('hidden');
+                    panda.classList.add('sad');
+                    btn.textContent = 'Secret Revealed';
+                })
+                .catch(error => {
+                    secretValue.textContent = 'Error fetching secret';
+                    secretBox.classList.remove('hidden');
+                    btn.textContent = 'Error';
+                });
+        });
+    });
