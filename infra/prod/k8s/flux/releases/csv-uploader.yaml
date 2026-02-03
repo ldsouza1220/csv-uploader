@@ -1,0 +1,58 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: csv-uploader
+  namespace: flux-system
+spec:
+  interval: 5m
+  targetNamespace: csv-uploader
+  releaseName: csv-uploader
+  chart:
+    spec:
+      chart: ./infra/helm/csv-uploader
+      sourceRef:
+        kind: GitRepository
+        name: csv-uploader
+        namespace: flux-system
+  values:
+    replicaCount: 2
+
+    image:
+      repository: ghcr.io/ldsouza1220/csv-uploader/csv-uploader
+      tag: "latest"
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 8000
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    env:
+      - name: ENVIRONMENT
+        value: production
+      - name: S3_BUCKET_NAME
+        value: csv-uploader-ounass
+      - name: AWS_REGION
+        value: ${AWS_REGION}
+
+    serviceAccount:
+      create: true
+      annotations:
+        eks.amazonaws.com/role-arn: ""  # Add IAM role ARN for S3 access
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+
+    ingress:
+      enabled: false  # Using Gateway API instead

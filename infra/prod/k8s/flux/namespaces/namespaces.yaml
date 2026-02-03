@@ -12,3 +12,10 @@ metadata:
   name: nginx-gateway
   labels:
     app.kubernetes.io/name: nginx-gateway
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: csv-uploader
+  labels:
+    app.kubernetes.io/name: csv-uploader

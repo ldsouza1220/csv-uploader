@@ -2,24 +2,19 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  # Namespaces
   - namespaces/namespaces.yaml
 
-  # Helm Repositories
   - sources/helm-repositories.yaml
 
-  # Gateway API CRDs (must be first)
   - releases/gateway-api-crds.yaml
 
-  # Helm Releases (ordered by dependencies)
   - releases/cert-manager.yaml
   - releases/external-dns.yaml
   - releases/aws-load-balancer-controller.yaml
   - releases/karpenter.yaml
   - releases/nginx-gateway-fabric.yaml
 
-  # Post-install configurations (with substitution variables)
+  - releases/csv-uploader.yaml
+
   - configs/cert-manager-cluster-issuer.yaml
-  - configs/karpenter-node-class.yaml
-  - configs/karpenter-node-pool.yaml
   - configs/gateway.yaml
