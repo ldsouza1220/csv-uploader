@@ -18,7 +18,7 @@ spec:
     replicaCount: 1
     image:
       repository: ghcr.io/ldsouza1220/csv-uploader/csv-uploader
-      tag: "dbe3c10"
+      tag: "18bb2f5"
       pullPolicy: IfNotPresent
     service:
       type: ClusterIP
