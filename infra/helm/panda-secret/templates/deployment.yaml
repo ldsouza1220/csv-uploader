@@ -23,9 +23,13 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
         - name: copy-static
           image: busybox:1.36
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           command:
             - sh
             - -c
@@ -45,6 +49,8 @@ spec:
         - name: nginx
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port | default 80 }}
@@ -76,6 +82,12 @@ spec:
             - name: secret-file
               mountPath: /var/www/secret
               readOnly: true
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: nginx-config
           configMap:
@@ -89,6 +101,12 @@ spec:
         - name: static-files
           emptyDir: {}
         - name: html-files
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:

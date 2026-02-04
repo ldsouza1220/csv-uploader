@@ -15,9 +15,24 @@ fullnameOverride: ""
 secret:
   pandaSecret: "Bamboo is just spicy grass"
 
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101  # nginx user in alpine
+  runAsGroup: 101
+  fsGroup: 101
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
 service:
   type: ClusterIP
-  port: 80
+  port: 8080
 
 # Horizontal Pod Autoscaler (low thresholds for demo)
 autoscaling:
