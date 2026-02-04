@@ -1,180 +1,174 @@
-# EKS Infrastructure with Kubernetes Add-ons
+# Production Infrastructure (AWS EKS)
 
-This project provisions a production-ready Amazon EKS cluster with essential Kubernetes add-ons including Karpenter for autoscaling, NGINX Ingress Controller, cert-manager for TLS certificates, and external-dns for automatic DNS management with Cloudflare.
-
-## Features
-
-- **EKS Cluster**: Managed Kubernetes cluster running version 1.33 in the `me-central-1` region
-- **VPC**: Custom VPC with public, private, and intra subnets across 3 availability zones
-- **Karpenter**: Cost-optimized node autoscaling using SPOT instances
-- **NGINX Ingress Controller**: Production-ready ingress with automatic Load Balancer provisioning
-- **cert-manager**: Automated TLS certificate management with Let's Encrypt
-- **external-dns**: Automatic DNS record creation in Cloudflare
-- **Sample Application**: Hextris game deployed at `hextris.souzaxx.dev`
+This Terraform configuration provisions the production EKS cluster and all required AWS resources.
 
 ## Architecture
 
-The infrastructure automatically:
-1. Creates an AWS Network Load Balancer (NLB) for the NGINX Ingress Controller
-2. Registers the NLB in Cloudflare DNS
-3. Configures DNS record `hextris.souzaxx.dev` to point to the load balancer
-4. Provisions TLS certificates via Let's Encrypt for HTTPS
+![Architecture Diagram](architecture.png)
 
-Karpenter is configured to use SPOT instances for cost-efficient workload scaling.
+## What Gets Created
+
+| Resource | Description |
+|----------|-------------|
+| EKS Cluster | Kubernetes 1.35 with public API endpoint (not recommended in a real environment) |
+| VPC | 3 AZs with public/private subnet separation |
+| Managed Node Group | Single t3.xlarge Spot instance for Karpenter controller |
+| S3 Bucket | Object storage with versioning and lifecycle policies |
+| IAM Roles | IRSA roles for Karpenter, AWS LB Controller, EBS CSI |
+| Flux CD | GitOps controller watching this repository |
 
 ## Prerequisites
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.5.7
-- [AWS CLI](https://aws.amazon.com/cli/) configured with appropriate credentials
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) for Kubernetes cluster access
-- Access to AWS account with permissions to create EKS, VPC, IAM resources
-- Cloudflare account with API token
+You'll need:
+- Terraform >= 1.5
+- AWS CLI configured with credentials
+- A Cloudflare account with API token (for DNS and TLS)
+- A GitHub account (for Flux deploy key)
 
-## Configuration
+## Quick Start
 
-### Domain Configuration
+### 1. Generate a Flux Deploy Key
 
-This project is configured for the domain `souzaxx.dev`. To use your own domain:
-
-1. **Update the domain in `main.tf`**:
-   ```hcl
-   external_dns = {
-     enabled      = true
-     extra_values = <<EOF
-     # ... other config ...
-     domainFilters:
-       - your-domain.com  # Change this line
-     EOF
-   }
-   ```
-
-2. **Update the Cloudflare API token secret**:
-
-   Edit the `kubernetes_secret.cf_token` resource in `main.tf` (lines 95-106):
-   ```hcl
-   resource "kubernetes_secret" "cf_token" {
-     metadata {
-       name      = "cloudflare-token"
-       namespace = "kube-system"
-     }
-
-     data = {
-       api-token = "YOUR_CLOUDFLARE_API_TOKEN"  # Replace with your token
-     }
-
-     type = "Opaque"
-   }
-   ```
-
-3. **Update the Hextris ingress hostname** in `hextris.tf`:
-   ```hcl
-   hosts:
-     - host: hextris.your-domain.com  # Change this
-   ```
-
-## Usage
-
-### Deploy the Infrastructure
+Flux needs read access to this repository:
 
 ```bash
-# Initialize Terraform
+ssh-keygen -t ed25519 -f flux-deploy-key -N ""
+```
+
+Add `flux-deploy-key.pub` as a deploy key in your GitHub repository:
+- Go to **Settings > Deploy Keys > Add deploy key**
+- Paste the public key content
+- Keep it read-only
+
+### 2. Get Your Cloudflare API Token
+
+Create an API token at [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) with:
+- **Zone:DNS:Edit** permission for your domain
+- **Zone:Zone:Read** permission
+
+### 3. Configure Variables
+
+Create `terraform.tfvars`:
+
+```hcl
+flux_deploy_key_private = <<-EOT
+-----BEGIN OPENSSH PRIVATE KEY-----
+... your private key ...
+-----END OPENSSH PRIVATE KEY-----
+EOT
+
+cloudflare_api_token = "your-cloudflare-api-token"
+
+# Optional: use your own domain (default: souzaxx.dev)
+domain = "yourdomain.com"
+```
+
+Or export as environment variables:
+
+```bash
+export TF_VAR_flux_deploy_key_private="$(cat flux-deploy-key)"
+export TF_VAR_cloudflare_api_token="your-token"
+export TF_VAR_domain="yourdomain.com"
+```
+
+### 4. Deploy
+
+```bash
 terraform init
-
-# Review the execution plan
 terraform plan
-
-# Apply the configuration
 terraform apply
 ```
 
-The apply process will:
-- Create VPC, subnets, and NAT gateway
-- Provision EKS cluster with managed node group for Karpenter
-- Install Kubernetes add-ons (Karpenter, NGINX, cert-manager, external-dns)
-- Deploy the Hextris sample application
-- Create NLB and register DNS records automatically
+This takes ~15 minutes. Terraform creates the EKS cluster, then Flux takes over and deploys all the Kubernetes components.
 
-### Access the Cluster
-
-After deployment, configure kubectl:
+### 5. Connect to the Cluster
 
 ```bash
-aws eks update-kubeconfig --region me-central-1 --name tii-eks
+aws eks update-kubeconfig --region me-central-1 --name ounass-eks
+kubectl get nodes
 ```
 
-### Verify Deployment
+## Using Your Own Domain
+
+By default, the stack uses `souzaxx.dev`. To use your own domain:
+
+1. Set the `domain` variable in Terraform:
+   ```hcl
+   domain = "yourdomain.com"
+   ```
+
+2. Point your domain's nameservers to Cloudflare (external-dns creates records automatically)
+
+3. After deployment, your apps will be available at:
+   - `csv.yourdomain.com` - CSV Uploader
+   - `pandas.yourdomain.com` - Panda Secret
+
+The domain variable flows through Flux substitution to all Kubernetes manifests, so you only need to set it once.
+
+## Variables
+
+| Name | Description | Default |
+|------|-------------|---------|
+| `flux_deploy_key_private` | SSH private key for Flux | (required) |
+| `cloudflare_api_token` | Cloudflare API token | (required) |
+| `domain` | Base domain for DNS and TLS | `souzaxx.dev` |
+
+## Verification
+
+Check that everything is running:
 
 ```bash
-# Check cluster status
-kubectl get nodes
+# Flux status
+flux get all -A
+
+# Check all pods
+kubectl get pods -A
+
+# Check Gateway
+kubectl get gateway,httproute -A
 
 # Check Karpenter
-kubectl get pods -n kube-system -l app.kubernetes.io/name=karpenter
-
-# Check ingress controller
-kubectl get svc -n ingress-nginx
-
-# Check application
-kubectl get ingress -n apps
+kubectl get nodepool,ec2nodeclass -A
 ```
 
-### Destroy the Infrastructure
+## Troubleshooting
+
+### Flux not reconciling
+
+```bash
+flux logs -f
+flux reconcile kustomization k8s-addons -n flux-system
+```
+
+### Certificate not issuing
+
+```bash
+kubectl describe certificate -n nginx-gateway
+kubectl logs -n kube-system -l app.kubernetes.io/name=cert-manager
+```
+
+### DNS records not created
+
+```bash
+kubectl logs -n kube-system -l app.kubernetes.io/name=external-dns
+```
+
+## Cost Estimate
+
+| Resource | ~Monthly Cost |
+|----------|---------------|
+| EKS Control Plane | $73 |
+| NAT Gateway | $32 + data transfer |
+| Network Load Balancer | $16 + data processing |
+| EC2 (Spot) | Variable, depends on workload |
+| **Minimum Total** | **~$150/month** |
+
+Karpenter uses Spot instances for application workloads, reducing compute costs by ~70% compared to on-demand.
+
+## Cleanup
 
 ```bash
 terraform destroy
 ```
 
-This will remove all resources including the EKS cluster, VPC, load balancers, and DNS records.
-
-## Cost Analysis
-
-Cost estimation was performed using `infracost breakdown --path=.`:
-
-```
-Project: main
-
- Name  Monthly Qty  Unit  Monthly Cost
-
- OVERALL TOTAL                  $160.00
-
-```
-
-**Note**: The $160.00 estimate is due to Terraform variables not being provided during the static analysis. Actual costs will include:
-
-- **EKS Cluster**: ~$73/month for control plane
-- **EC2 Instances**: Variable based on Karpenter's SPOT instance scaling
-  - Initial managed node group: 1x t3.xlarge SPOT instance (~$50-60/month with SPOT pricing)
-  - Application nodes: Dynamic based on workload (Karpenter uses SPOT for ~70% cost savings)
-- **NAT Gateway**: ~$32/month + data transfer costs
-- **Network Load Balancer**: ~$16/month + data processing costs
-- **Data Transfer**: Variable based on traffic
-
-**Estimated Monthly Cost**: $150-200 with minimal workload, utilizing SPOT instances for cost optimization.
-
-## Project Structure
-
-```
-.
-├── README.md                  # This file
-├── main.tf                    # Main EKS and VPC configuration
-├── hextris.tf                 # Sample application deployment
-├── providers.tf               # Provider configurations
-├── versions.tf                # Terraform version constraints
-├── variables.tf               # Input variables
-├── modules/
-│   └── k8s-addons/           # Kubernetes add-ons module
-│       └── README.md         # Module documentation
-└── charts/
-    └── hextris/              # Hextris Helm chart
-```
-
-## Modules
-
-- **k8s-addons**: Installs and configures Kubernetes add-ons including Karpenter, NGINX Ingress, cert-manager, AWS Load Balancer Controller, and external-dns. See [modules/k8s-addons/README.md](modules/k8s-addons/README.md) for detailed documentation.
-
-## Security Considerations
-
-- The Cloudflare API token is stored in a Kubernetes secret. Consider using AWS Secrets Manager or external-secrets operator for production.
-- EKS cluster endpoint is publicly accessible. Consider restricting access via security groups.
-- SPOT instances are used for cost optimization but may be interrupted. Ensure applications are fault-tolerant.
-
+This removes everything including the EKS cluster, VPC, and S3 bucket.
