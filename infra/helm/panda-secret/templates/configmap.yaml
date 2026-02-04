@@ -32,7 +32,7 @@ data:
         gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
 
         server {
-            listen 80;
+            listen {{ .Values.service.port | default 80 }};
             server_name _;
             root /usr/share/nginx/html;
             index index.html;
