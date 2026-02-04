@@ -56,3 +56,10 @@ spec:
       gateway:
         name: main
         namespace: nginx-gateway
+    nodeSelector:
+      nodepool: apps
+    tolerations:
+      - key: nodepool
+        operator: Equal
+        value: apps
+        effect: NoSchedule

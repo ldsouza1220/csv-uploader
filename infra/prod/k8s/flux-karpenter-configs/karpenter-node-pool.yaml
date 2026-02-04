@@ -6,12 +6,16 @@ spec:
   template:
     metadata:
       labels:
-        apps: hextris
+        nodepool: apps
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
         name: karpenter
+      taints:
+        - key: nodepool
+          value: apps
+          effect: NoSchedule
       requirements:
         - key: "karpenter.k8s.aws/instance-category"
           operator: In
