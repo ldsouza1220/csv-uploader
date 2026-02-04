@@ -32,7 +32,7 @@ spec:
             key: api-token
 
     domainFilters:
-      - souzaxx.dev
+      - ${DOMAIN}
 
     # Gateway API support
     sources:

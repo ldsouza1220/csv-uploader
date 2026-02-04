@@ -222,6 +222,7 @@ resource "kubectl_manifest" "flux_kustomization" {
           AWS_LB_CONTROLLER_ROLE_ARN = var.aws_load_balancer_controller.enabled ? module.aws_load_balancer_controller_irsa.iam_role_arn : ""
           EXTERNAL_DNS_ROLE_ARN      = var.external_dns.enabled && var.external_dns.create_iam_role ? module.external_dns_irsa.iam_role_arn : ""
           VPC_ID                     = var.vpc_id
+          DOMAIN                     = var.domain
         }
       }
     }
@@ -254,6 +255,11 @@ resource "kubectl_manifest" "flux_kustomization_configs" {
       path  = "infra/prod/k8s/flux-configs"
       prune = true
       wait  = true
+      postBuild = {
+        substitute = {
+          DOMAIN = var.domain
+        }
+      }
     }
   })
 }
@@ -323,6 +329,7 @@ resource "kubectl_manifest" "flux_kustomization_apps" {
       postBuild = {
         substitute = {
           AWS_REGION = data.aws_region.current.name
+          DOMAIN     = var.domain
         }
       }
     }

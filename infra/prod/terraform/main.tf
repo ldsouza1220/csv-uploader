@@ -23,7 +23,7 @@ module "eks" {
   version = "~> 21.0"
 
   name               = local.name
-  kubernetes_version = "1.34"
+  kubernetes_version = "1.35"
 
   enable_cluster_creator_admin_permissions = true
   endpoint_public_access                   = true
@@ -207,6 +207,7 @@ module "k8s_addons" {
   }
 
   vpc_id = module.vpc.vpc_id
+  domain = var.domain
   tags   = local.tags
 
   karpenter = {

@@ -87,3 +87,9 @@ variable "flux_deploy_key_private" {
   sensitive   = true
   default     = ""
 }
+
+variable "domain" {
+  description = "Base domain for DNS records and TLS certificates"
+  type        = string
+  default     = "souzaxx.dev"
+}

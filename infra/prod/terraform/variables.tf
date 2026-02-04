@@ -9,3 +9,9 @@ variable "cloudflare_api_token" {
   type        = string
   sensitive   = true
 }
+
+variable "domain" {
+  description = "Base domain for DNS records and TLS certificates (e.g., example.com)"
+  type        = string
+  default     = "souzaxx.dev"
+}

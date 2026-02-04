@@ -52,7 +52,7 @@ spec:
       enabled: false
     httpRoute:
       enabled: true
-      hostname: csv.souzaxx.dev
+      hostname: csv.${DOMAIN}
       gateway:
         name: main
         namespace: nginx-gateway
