@@ -75,7 +75,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             status_code=200,
             content={
                 "status": "success",
-                "message": f"File uploaded successfully",
+                "message": "File uploaded successfully",
                 "file_id": processed_file.id,
                 "filename": file.filename,
                 "row_count": row_count,

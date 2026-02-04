@@ -1,9 +1,9 @@
+import io
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-import io
 
-# Mock S3 and database before importing app
 with patch('s3_client.boto3'):
     with patch('database.create_engine'):
         from main import app
