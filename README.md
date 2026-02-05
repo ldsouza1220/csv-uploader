@@ -122,9 +122,33 @@ The GitHub Actions workflow (`.github/workflows/csv-uploader.yml`) implements:
 
 1. **Lint** - Code quality checks with ruff
 2. **Test** - Pytest with mocked S3
-3. **Build** - Docker image pushed to GHCR
+3. **Build** - Multi-arch Docker image pushed to GHCR
 4. **Deploy** - GitOps update to trigger Flux reconciliation
 
+## Load Testing
+
+Load tests use [k6](https://k6.io/). Install it first:
+
+```bash
+brew install k6
+```
+
+Run tests:
+
+```bash
+cd k6
+
+# Quick smoke test (10 users, 30s)
+make smoke
+
+# Full load test against dev
+make dev
+
+# Full load test against production
+make prod
+```
+
+The full test ramps up to 500 concurrent users to trigger HPA and Karpenter scaling.
 
 ## Architecture Decision Records
 

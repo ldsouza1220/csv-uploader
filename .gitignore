@@ -84,3 +84,5 @@ Thumbs.db
 kubeconfig
 *.kubeconfig
 
+# CSVs
+*.csv
