@@ -14,7 +14,7 @@ This repository contains **two applications**:
 ## Repository Structure
 
 ```
-ounass/
+/
 ├── apps/
 │   └── csv-uploader/           # FastAPI application source code
 │       ├── main.py             # Application entry point
@@ -26,8 +26,8 @@ ounass/
 │   │   ├── csv-uploader/
 │   │   └── panda-secret/
 │   │
-│   ├── dev/                    # Development environment (Minikube + Flux)
-│   │   └── k8s/flux/
+│   ├── dev/                    # Development environment (Minikube + Helm)
+│   │   └── k8s/                # Makefile + Helm values
 │   │
 │   └── prod/                   # Production environment (AWS EKS)
 │       ├── terraform/          # EKS cluster, VPC, S3 bucket
@@ -46,20 +46,20 @@ ounass/
 | Environment | Kubernetes | Object Storage | Ingress | Setup |
 |-------------|------------|----------------|---------|-------|
 | **Local** | Docker Compose | MinIO | localhost:8000 | `docker-compose up` |
-| **Dev** | Minikube + Flux CD | MinIO (Helm) | Port forwarding | See below |
+| **Dev** | Minikube + Helm | MinIO | Ingress | `make all` |
 | **Prod** | AWS EKS + Flux CD | AWS S3 | Gateway API + NLB | Terraform + GitOps |
 
-## GitOps with Flux CD
+## GitOps with Flux CD (Production)
 
-Both environments use [Flux CD](https://fluxcd.io/) for GitOps-based deployments:
+Production uses [Flux CD](https://fluxcd.io/) for GitOps-based deployments:
 
-- **Development**: Flux manages MinIO deployment via HelmRelease
-- **Production**: Flux manages the full infrastructure stack including:
-  - cert-manager (TLS certificates via Let's Encrypt)
-  - external-dns (Route53 DNS management)
-  - nginx-gateway-fabric (Gateway API implementation)
-  - karpenter (Node auto-scaling)
-  - Application deployments (csv-uploader, panda-secret)
+- cert-manager (TLS certificates via Let's Encrypt)
+- external-dns (Cloudflare DNS management)
+- nginx-gateway-fabric (Gateway API implementation)
+- karpenter (Node auto-scaling)
+- Application deployments (csv-uploader, panda-secret)
+
+Dev environment uses plain Helm + Makefile for simplicity (KISS principle). See [ADR-0001](docs/adr/0001-development-environment.md).
 
 ## Getting Started
 
@@ -75,29 +75,24 @@ docker-compose up --build
 # MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
 ```
 
-## Development Environment (Minikube + Flux)
+## Development Environment (Minikube + Helm)
 
 ```bash
-# Start Minikube
-minikube start --driver=qemu2
-minikube addons enable ingress
-
-# Install Flux
-curl -s https://fluxcd.io/install.sh | bash
-flux install
-
-# Deploy dev infrastructure
-kubectl apply -k infra/dev/k8s/flux/
-
-# Check deployment status
-flux get helmreleases -n csv-processor
+cd infra/dev/k8s
+make all
 ```
 
-Access MinIO:
+Add hosts and start ingress:
+
 ```bash
-kubectl port-forward -n csv-processor svc/minio-console 9001:9001 &
-# Console: http://localhost:9001 (minioadmin/minioadmin123)
+echo '127.0.0.1 csv.local pandas.local minio.local' | sudo tee -a /etc/hosts
+make tunnel
 ```
+
+Access apps:
+- http://csv.local - CSV Uploader
+- http://pandas.local - Panda Secret
+- http://minio.local - MinIO Console (minioadmin/minioadmin123)
 
 See [infra/dev/k8s/README.md](infra/dev/k8s/README.md) for detailed documentation.
 
@@ -110,6 +105,8 @@ cd infra/prod/terraform
 terraform init
 terraform apply
 ```
+
+See [infra/prod/terraform/README.md](infra/prod/terraform/README.md) for more Terraform details.
 
 This provisions:
 - EKS cluster with Karpenter for node auto-scaling
