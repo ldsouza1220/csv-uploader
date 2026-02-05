@@ -1,0 +1,38 @@
+mode: standalone
+replicas: 1
+
+rootUser: minioadmin
+rootPassword: minioadmin123
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: 5Gi
+
+resources:
+  requests:
+    memory: 256Mi
+
+service:
+  type: ClusterIP
+  port: 9000
+
+consoleService:
+  type: ClusterIP
+  port: 9001
+
+buckets:
+  - name: csv-files
+    policy: none
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - minio-api.local
+
+consoleIngress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - minio.local

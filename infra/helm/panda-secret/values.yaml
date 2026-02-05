@@ -63,3 +63,10 @@ httpRoute:
     name: main
     namespace: nginx-gateway
     sectionName: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
